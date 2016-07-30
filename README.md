@@ -5,17 +5,17 @@ Artificial Intelligence algorithms for the OpenAI Gym platform
 
 Installing [OpenAI Gym](https://gym.openai.com)
 
-```python
+```bash
 $ brew install cmake boost boost-python sdl2 swig wget
 ```
 
-```python
+```bash
 $ pip install gym
 ```
 
 or
 
-```python
+```bash
 $ git clone https://github.com/openai/gym.git
 $ cd gym
 $ pip install -e .
@@ -24,6 +24,6 @@ $ pip install -e '.[atari]'
 
 ## Executing
 
-```python
+```bash
 $ python example.py
 ```
