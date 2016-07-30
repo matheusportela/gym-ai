@@ -91,6 +91,7 @@ def main():
         print_locations(right_player_locator.locate(observation),
                         left_player_locator.locate(observation),
                         ball_locator.locate(observation))
+        print reward
 
         if done:
             print 'Finished'
