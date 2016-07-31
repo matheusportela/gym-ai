@@ -99,19 +99,6 @@ class QLearning(LearningAlgorithm):
     Q-learning is a model free reinforcement learning algorithm that tries and
     learning state values and chooses actions that maximize the expected
     discounted reward for the current state.
-
-    Instance variables:
-    previous_state -- State in which the algorithm currently is.
-    q_values -- Storage for (state, action) pair estimated values.
-    learning_rate -- Value in [0, 1] interval that determines how much of the
-        new information overrides the previous value. Deterministic scenarios
-        may have optimal results with learning rate of 1, which means the new
-        information completely replaces the old one.
-    discount_factor -- Value in [0, 1) interval that determines the importance
-        of future rewards. 0 makes the agent myopic and greedy, trying to
-        achieve higher rewards in the next step. Closer to 1 makes the agent
-        maximize long-term rewards. Although values of 1 and higher are possible,
-        it may make the expected discounted reward infinite or divergent.
     """
 
     def __init__(self, initial_state=0, learning_rate=1, discount_factor=1,
@@ -120,8 +107,18 @@ class QLearning(LearningAlgorithm):
 
         Parameters:
         initial_state -- State where the algorithm begins.
-        num_states -- Number of states to be represented.
-        num_actions -- Number of actions to be represented.
+        learning_rate -- Value in [0, 1] interval that determines how much of
+            the new information overrides the previous value. Deterministic
+            scenarios may have optimal results with learning rate of 1, which
+            means the new information completely replaces the old one.
+        discount_factor -- Value in [0, 1) interval that determines the
+            importance of future rewards. 0 makes the agent myopic and greedy,
+            trying to achieve higher rewards in the next step. Closer to 1
+            makes the agent maximize long-term rewards. Although values of 1
+            and higher are possible, it may make the expected discounted reward
+            infinite or divergent.
+        actions -- List of (hashable) actions available in the current
+            environment.
         """
         super(QLearning, self).__init__()
         self.previous_state = initial_state
@@ -282,8 +279,8 @@ class Agent(object):
         self.actions = range(num_actions)
         self.q_learner = QLearning(
             actions=self.actions,
-            learning_rate=0.9,
-            discount_factor=0.1,
+            learning_rate=0.25,
+            discount_factor=0.9,
         )
         self.exploration_rate = exploration_rate
 
@@ -319,8 +316,11 @@ def main():
 
     episode_reward = 0
 
+    is_rendering = False
+
     while True:
-        env.render()
+        if is_rendering:
+            env.render()
 
         action = agent.act(state)
         observation, reward, done, info = env.step(action)
@@ -335,6 +335,11 @@ def main():
 
             game_number += 1
             print 'Game #{}'.format(game_number)
+
+            if game_number % 5 == 0:
+                is_rendering = True
+            else:
+                is_rendering = False
 
             observation = env.reset()
 
