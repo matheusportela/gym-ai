@@ -1,8 +1,8 @@
 import gym
-import matplotlib.pylab as plt
+# import matplotlib.pylab as plt
 import numpy as np
 
-plt.ion()
+# plt.ion()
 
 
 class ObjectLocator(object):
@@ -297,23 +297,104 @@ class StateEstimator(object):
         return state
 
 
+class DeepQLearning(LearningAlgorithm):
+    """Implementing Deep Q-Learning algorithm.
+
+    References:
+    - http://karpathy.github.io/2016/05/31/rl/
+    - https://gist.github.com/karpathy/a4166c7fe253700972fcbc77e4ea32c5
+    """
+    def __init__(self):
+        self.actions = {
+            'up': 2,
+            'down': 3,
+        }
+
+        self.min_y = 34
+        self.max_y = 193
+
+        self.image_height = self.max_y - self.min_y
+        self.image_weight = 160
+        self.image_channels = 3
+
+        self.input_size = self.image_height * self.image_weight
+
+        self.hidden_units = 10
+
+        # Randomly initializing weights with values in [-1, 1)
+        # Hidden layer
+        self.W1 = 2*np.random.random([self.hidden_units, self.input_size]) - 1
+
+        # Output layer with 1 node
+        self.W2 = 2*np.random.random([1, self.hidden_units]) - 1
+
+    def preprocess(self, state):
+        """Preprocess input state to accelerate learning by removing
+        unnecessary information.
+        """
+        # Cropping top and bottom
+        state = state[self.min_y:self.max_y, :, :]
+
+        # Transform to black and white
+        state = state[:, :, 0]
+        state[state == 144] = 0  # background to black
+        state[state == 109] = 0  # background to black
+        state[state != 0] = 1  # everything else to white
+
+        return state.astype(np.float).reshape([self.input_size, 1])
+
+    def learn(self, state, action, reward):
+        pass
+
+    def act(self, state):
+        """Select action given the current state of the game.
+
+        Parameters:
+        state -- RGB image in numpy format. For Pong game, it means a 210x160x3
+            matrix.
+
+        Return:
+        Integer representing the selected action.
+        """
+        # Ravel image from 210x160x3 matrix to 100800x1 vector
+        X = self.preprocess(state)
+
+        # Hidden layer
+        H1 = np.dot(self.W1, X)
+        H1[H1 < 0] = 0.0  # ReLU activation function
+
+        # Output layer
+        H2 = np.dot(self.W2, H1)
+        logp = H2[0][0]
+        p = 1.0/(1.0 + np.exp(-logp))
+
+        # Sampling action
+        sample = np.random.random()
+
+        if sample > p:
+            return self.actions['up']
+        else:
+            return self.actions['down']
+
+
 class Agent(object):
     def __init__(self, num_actions, exploration_rate=0.05):
         self.actions = range(num_actions)
-        self.q_learner = QLearning(
-            actions=self.actions,
-            learning_rate=0.5,
-            discount_factor=0.5,
-        )
+        # self.learner = QLearning(
+        #     actions=self.actions,
+        #     learning_rate=0.5,
+        #     discount_factor=0.5,
+        # )
+        self.learner = DeepQLearning()
         self.exploration_rate = exploration_rate
 
     def learn(self, state, action, reward):
-        self.q_learner.learn(state, action, reward)
+        self.learner.learn(state, action, reward)
 
     def act(self, state):
         if np.random.random() < self.exploration_rate:
             return np.random.choice(self.actions)
-        return self.q_learner.act(state)
+        return self.learner.act(state)
 
 
 def main():
@@ -331,14 +412,15 @@ def main():
 
     episode_reward = 0
 
-    is_rendering = False
+    is_rendering = True
     reward_history = []
 
     while True:
         if is_rendering:
             env.render()
 
-        action = agent.act(state)
+        # action = agent.act(state)
+        action = agent.act(observation)
         observation, reward, done, info = env.step(action)
         state = state_estimator.estimate(observation)
         agent.learn(state, action, reward)
@@ -347,10 +429,10 @@ def main():
 
         if done:
             reward_history.append(episode_reward)
-            plt.clf()
-            plt.plot(reward_history, '-o')
-            plt.show()
-            plt.pause(0.005)
+            # plt.clf()
+            # plt.plot(reward_history, '-o')
+            # plt.show()
+            # plt.pause(0.005)
 
             print 'Episode reward:', episode_reward
             episode_reward = 0
