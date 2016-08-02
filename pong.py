@@ -247,13 +247,31 @@ class QLearning(LearningAlgorithm):
 class StateEstimator(object):
     def __init__(self):
         self.right_player_locator = ObjectLocator(np.array([92, 186, 92]))
+        self.previous_right_player_location = np.zeros(2)
         self.left_player_locator = ObjectLocator(np.array([213, 130, 74]))
+        self.previous_left_player_location = np.zeros(2)
         self.ball_locator = ObjectLocator(np.array([236, 236, 236]))
         self.previous_ball_location = np.zeros(2)
 
     def estimate(self, observation):
         right_player_location = self.right_player_locator.locate(observation)
+
+        if right_player_location is not None:
+            right_player_velocity = right_player_location - self.previous_right_player_location
+            self.previous_right_player_location = right_player_location
+        else:
+            right_player_velocity = None
+            self.previous_right_player_location = np.zeros(2)
+
         left_player_location = self.left_player_locator.locate(observation)
+
+        if left_player_location is not None:
+            left_player_velocity = left_player_location - self.previous_left_player_location
+            self.previous_left_player_location = left_player_location
+        else:
+            left_player_velocity = None
+            self.previous_left_player_location = np.zeros(2)
+
         ball_location = self.ball_locator.locate(observation)
 
         if ball_location is not None:
@@ -266,7 +284,9 @@ class StateEstimator(object):
         # Convert to string because it's hashable
         state = str([
             right_player_location,
+            right_player_velocity,
             left_player_location,
+            left_player_velocity,
             ball_location,
             ball_velocity,
         ])
@@ -279,8 +299,8 @@ class Agent(object):
         self.actions = range(num_actions)
         self.q_learner = QLearning(
             actions=self.actions,
-            learning_rate=0.25,
-            discount_factor=0.9,
+            learning_rate=0.5,
+            discount_factor=0.5,
         )
         self.exploration_rate = exploration_rate
 
@@ -291,14 +311,6 @@ class Agent(object):
         if np.random.random() < self.exploration_rate:
             return np.random.choice(self.actions)
         return self.q_learner.act(state)
-
-
-def print_locations(right_player_location, left_player_location,
-                    ball_location):
-    print 'Right player:', right_player_location
-    print 'Left player:', left_player_location
-    print 'Ball:', ball_location
-    print
 
 
 def main():
