@@ -1,5 +1,8 @@
 import gym
+import matplotlib.pylab as plt
 import numpy as np
+
+plt.ion()
 
 
 class ObjectLocator(object):
@@ -329,6 +332,7 @@ def main():
     episode_reward = 0
 
     is_rendering = False
+    reward_history = []
 
     while True:
         if is_rendering:
@@ -342,6 +346,12 @@ def main():
         episode_reward += reward
 
         if done:
+            reward_history.append(episode_reward)
+            plt.clf()
+            plt.plot(reward_history, '-o')
+            plt.show()
+            plt.pause(0.005)
+
             print 'Episode reward:', episode_reward
             episode_reward = 0
 
