@@ -305,11 +305,6 @@ class DeepQLearning(LearningAlgorithm):
     - https://gist.github.com/karpathy/a4166c7fe253700972fcbc77e4ea32c5
     """
     def __init__(self):
-        self.actions = {
-            'up': 2,
-            'down': 3,
-        }
-
         self.min_y = 34
         self.max_y = 193
 
@@ -321,12 +316,14 @@ class DeepQLearning(LearningAlgorithm):
 
         self.hidden_units = 10
 
+        self.output_size = 2
+
         # Randomly initializing weights with values in [-1, 1)
         # Hidden layer
         self.W1 = 2*np.random.random([self.hidden_units, self.input_size]) - 1
 
         # Output layer with 1 node
-        self.W2 = 2*np.random.random([1, self.hidden_units]) - 1
+        self.W2 = 2*np.random.random([self.output_size, self.hidden_units]) - 1
 
     def preprocess(self, state):
         """Preprocess input state to accelerate learning by removing
@@ -343,7 +340,20 @@ class DeepQLearning(LearningAlgorithm):
 
         return state.astype(np.float).reshape([self.input_size, 1])
 
-    def learn(self, state, action, reward):
+    def learn(self, previous_state, state, action, reward, terminal=False):
+        prevQ = self.forward_propagate(previous_state)
+        maxQ = np.max(self.forward_propagate(state))
+
+        y = prevQ[:]
+
+        if terminal:
+            y[action, 0] = reward
+        else:
+            y[action, 0] = reward + self.discount_factor*maxQ
+
+        self.back_propagate(y)
+
+    def back_propagate(self, state, y):
         pass
 
     def act(self, state):
@@ -356,6 +366,10 @@ class DeepQLearning(LearningAlgorithm):
         Return:
         Integer representing the selected action.
         """
+        probabilities = self.forward_propagate(state)
+        return np.argmax(probabilities)
+
+    def forward_propagate(self, state):
         # Ravel image from 210x160x3 matrix to 100800x1 vector
         X = self.preprocess(state)
 
@@ -365,36 +379,32 @@ class DeepQLearning(LearningAlgorithm):
 
         # Output layer
         H2 = np.dot(self.W2, H1)
-        logp = H2[0][0]
-        p = 1.0/(1.0 + np.exp(-logp))
+        output = np.exp(H2)/np.sum(np.exp(H2)) # Softmax activation function
 
-        # Sampling action
-        sample = np.random.random()
-
-        if sample > p:
-            return self.actions['up']
-        else:
-            return self.actions['down']
+        return output
 
 
 class Agent(object):
     def __init__(self, num_actions, exploration_rate=0.05):
-        self.actions = range(num_actions)
-        # self.learner = QLearning(
-        #     actions=self.actions,
-        #     learning_rate=0.5,
-        #     discount_factor=0.5,
-        # )
         self.learner = DeepQLearning()
         self.exploration_rate = exploration_rate
+
+        self.actions = {
+            'up': 2,
+            'down': 3,
+        }
+        self.action_names = self.actions.keys()
 
     def learn(self, state, action, reward):
         self.learner.learn(state, action, reward)
 
     def act(self, state):
         if np.random.random() < self.exploration_rate:
-            return np.random.choice(self.actions)
-        return self.learner.act(state)
+            action_name = np.random.choice(self.action_names)
+        else:
+            action_name = 'up' if self.learner.act(state) == 0 else 'down'
+
+        return self.actions[action_name]
 
 
 def main():
